@@ -1,2 +1,4 @@
-# scheduled-tweets
-Schedule tweets (plugin) from your WordPress website
+# Scheduled Tweets WordPress plugin
+
+Schedule tweets from your WordPress website with Buffer-like functionality.
+
