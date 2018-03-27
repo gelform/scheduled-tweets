@@ -7,6 +7,9 @@
  *
  * @todo :
  * - Bulk upload (CSV?)
+ * - Make preview live
+ * - Test empty message, other errors
+ * - Add drag and drop to calendar
  *
  * @link https://developer.twitter.com/en/docs/tweets/post-and-engage/overview
  */
@@ -64,6 +67,12 @@ class Scheduled_Tweets {
 	static function editor_char_count() {
 		?>
 
+		<style>
+			#content {
+				max-height: 10em;
+			}
+		</style>
+
 		<script type="text/javascript">
 			(function ($) {
 				wpCharCount = function (txt) {
@@ -80,24 +89,24 @@ class Scheduled_Tweets {
 				$(document).ready(function () {
 					$('#wp-word-count').append('<br />Char count: <span class="char-count">0</span>');
 
-					$('#content').bind('keydown', function () {
+					$('#content').bind('change keydown paste', function () {
 						var val = $('#content').val();
 						var count = wpCharCount(val);
-						// if ( count > 140 ) {
-						// 	$('#content').val(
-						// 		val.substring(0, 140)
-						// 	);
-						//
-						// 	wpCharCount(val);
-						// 	return false;
-						// }
+						if ( count > 300 ) {
+							$('#content').val(
+								val.substring(0, 300)
+							);
+
+							wpCharCount(val);
+							return false;
+						}
 					});
 
 					$('#content').trigger('keydown');
 				})
-					.bind('wpcountwords', function (e, txt) {
-						wpCharCount(txt);
-					});
+				.bind('wpcountwords', function (e, txt) {
+					wpCharCount(txt);
+				});
 
 
 			}(jQuery));
@@ -818,11 +827,13 @@ class Scheduled_Tweets {
 
 		?>
 
+		<blockquote>
 		<p>
 			<?php echo $content ?>
 		</p>
+		</blockquote>
 
-		<p>
+		<p style="background: #DDD; padding: 5px;">
 			<?php if ( $strlen > 140 ) : ?>
 				<b style="background: tomato; color: white; padding: .5em;">
 					<?php echo $strlen ?> characters
