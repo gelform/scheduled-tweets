@@ -3,15 +3,15 @@
 /**
  * Plugin Name: Scheduled Tweets
  * Description: Schedule tweets to tweet to your twitter account
- * Version: 0.0.1
+ * Version:     0.0.1
+ * Plugin Name: WordPress.org Plugin
+ * Plugin URI:  https://developer.wordpress.org/plugins/scheduled-tweets/
+ * Author:      Gelform
+ * Author URI:  https://gelform.com
+ * License:     GPL2
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  *
- * @todo :
- * - Bulk upload (CSV?)
- * - Make preview live
- * - Test empty message, other errors
- * - Add drag and drop to calendar
- *
- * @link https://developer.twitter.com/en/docs/tweets/post-and-engage/overview
+
  */
 
 
@@ -92,7 +92,7 @@ class Scheduled_Tweets {
 					$('#content').bind('change keydown paste', function () {
 						var val = $('#content').val();
 						var count = wpCharCount(val);
-						if ( count > 300 ) {
+						if (count > 300) {
 							$('#content').val(
 								val.substring(0, 300)
 							);
@@ -104,9 +104,9 @@ class Scheduled_Tweets {
 
 					$('#content').trigger('keydown');
 				})
-				.bind('wpcountwords', function (e, txt) {
-					wpCharCount(txt);
-				});
+					.bind('wpcountwords', function (e, txt) {
+						wpCharCount(txt);
+					});
 
 
 			}(jQuery));
@@ -244,6 +244,15 @@ class Scheduled_Tweets {
 	}
 
 	static function add_admin_menu() {
+//		add_submenu_page(
+//			'edit.php?post_type=' . self::$post_type,
+//			'Add Many',
+//			'Add Many',
+//			'manage_options',
+//			self::$post_type . '_add_many',
+//			array( __CLASS__, 'render_admin_menu_add_many' )
+//		);
+
 		add_submenu_page(
 			'edit.php?post_type=' . self::$post_type,
 			'Calendar',
@@ -261,6 +270,10 @@ class Scheduled_Tweets {
 			self::$post_type . '_settings',
 			array( __CLASS__, 'render_admin_menu_settings' )
 		);
+	}
+
+	static function render_admin_menu_add_many () {
+		include plugin_dir_path(__FILE__) . '/templates/admin/add-many.php';
 	}
 
 	static function render_admin_menu_calendar() {
@@ -303,7 +316,7 @@ class Scheduled_Tweets {
 			'post_type'   => self::$post_type,
 			'post_status' => array( 'publish', 'future' ),
 			'numberposts' => - 1,
-			'orderby' => 'post_date_gmt',
+			'orderby'     => 'post_date_gmt',
 			'date_query'  => array(
 				'column' => 'post_date',
 				'after'  => $dt_prev->format( 'Y-m-t' ),
@@ -323,193 +336,7 @@ class Scheduled_Tweets {
 		}
 
 
-		?>
-		<div class="wrap">
-			<h2>Calendar</h2>
-
-			<style>
-				table.calendar {
-					border-spacing: 2px;
-					border-collapse: separate;
-					width: 100%;
-				}
-
-				table.calendar th {
-					text-align: center;
-					padding-bottom: 5px;
-					width: <?php echo 100/7 ?>%;
-				}
-
-				table.calendar td {
-					background: white;
-					max-width: 0;
-					height: 6em;
-					width: <?php echo 100/7 ?>%;
-					padding: 3px;
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-					vertical-align: top;
-				}
-
-				table.calendar .calendar-day-np {
-					background: #EEE;
-				}
-
-				.tweet {
-					color: #999;
-					display: block;
-					overflow: hidden;
-					width: 100%;
-					text-overflow: ellipsis;
-					text-decoration: none;
-				}
-
-				.tweet.failed {
-					color: tomato;
-				}
-
-				.tweet.tweeted {
-					color: limegreen;
-				}
-
-			</style>
-
-
-			<table cellpadding="0" cellspacing="0" class="calendar">
-
-				<thead>
-				<tr>
-					<th colspan="2">
-						<a href="<?php echo add_query_arg( array(
-							'month' => $dt_prev->format( 'm' ),
-							'year'  => $dt_prev->format( 'Y' )
-						) ) ?>">
-							&lt;
-							<?php echo $dt_prev->format( 'M, Y' ) ?>
-						</a>
-					</th>
-					<th colspan="3">
-						<h3><?php echo $dt->format( 'M, Y' ) ?></h3>
-					</th>
-					<th colspan="2">
-						<a href="<?php echo add_query_arg( array(
-							'month' => $dt_next->format( 'm' ),
-							'year'  => $dt_next->format( 'Y' )
-						) ) ?>">
-							<?php echo $dt_next->format( 'M, Y' ) ?>
-							&gt;
-						</a>
-					</th>
-				</tr>
-				</thead>
-
-				<tbody>
-
-				<tr class="calendar-row">
-					<?php foreach ( $headings as $heading ) : ?>
-						<th class="calendar-day-head">
-							<?php echo $heading ?>
-						</th>
-					<?php endforeach; // headings ?>
-				</tr>
-
-				<tr class="calendar-row">
-
-					<?php for ( $x = 0; $x < $running_day; $x ++ ): ?>
-						<td class="calendar-day-np">&nbsp;</td>
-						<?php $days_in_this_week ++; ?>
-					<?php endfor; ?>
-
-					<?php for ( $list_day = 1;
-					$list_day <= $days_in_month;
-					$list_day ++ ): ?>
-					<?php $list_date = sprintf(
-						'%s-%s-%s',
-						$year,
-						str_pad( $month, 2, '0', STR_PAD_LEFT ),
-						str_pad( $list_day, 2, '0', STR_PAD_LEFT )
-					); ?>
-					<td class="calendar-day" data-date="<?php echo $list_date ?>">
-						<div class="day-number"><?php echo $list_day ?></div>
-
-						<?php if ( isset( $tweets_by_date[ $list_date ] ) ) : $tweets_by_date[ $list_date ] = array_reverse($tweets_by_date[ $list_date ]); ?>
-							<?php foreach ( $tweets_by_date[ $list_date ] as $tweet ) : ?>
-								<?php
-
-								$tweet_dt = new DateTime( $tweet->post_date );
-
-								$post_meta = self::get_post_meta( $tweet->ID );
-
-								$class = '';
-								if ( $post_meta['is_tweet_failed'] == 1 ) {
-									$class = 'failed';
-								} else {
-									if ( $post_meta['is_tweeted'] == 1 ) {
-										$class = 'tweeted';
-									}
-								}
-
-								?>
-								<a href="<?php echo admin_url( 'post.php?action=edit&post=' . $tweet->ID ) ?>"
-								   class="tweet <?php echo $class ?>">
-									<small>
-									<?php echo $tweet_dt->format('G:i') ?>
-									</small>
-									<?php echo $tweet->post_content ?>
-								</a>
-							<?php endforeach; ?>
-						<?php endif; ?>
-					</td>
-
-					<?php if ( $running_day == 6 ): ?>
-				</tr>
-				<?php if ( ( $day_counter + 1 ) != $days_in_month ): ?>
-				<tr class="calendar-row">
-					<?php endif; ?>
-					<?php $running_day = - 1;
-					$days_in_this_week = 0; ?>
-					<?php endif; ?>
-					<?php $days_in_this_week ++;
-					$running_day ++;
-					$day_counter ++; ?>
-					<?php endfor; ?>
-
-					<?php if ( $days_in_this_week < 8 ):
-						for ( $x = 1; $x <= ( 8 - $days_in_this_week ); $x ++ ): ?>
-							<td class="calendar-day-np">&nbsp;</td>
-						<?php endfor; endif; ?>
-
-
-				</tr>
-
-				</tbody>
-			</table>
-
-			<script>
-				jQuery(function($) {
-					$('table.calendar').on(
-						'click',
-						'td',
-						function (e) {
-							// Let links go through.
-							if ( e.target.tagName == 'A' ) {
-								return true;
-							}
-
-							var date = $(e.target).attr('data-date');
-
-							// Otherwise, let's creat a new one.
-							window.location = '<?php echo admin_url('/post-new.php?post_type=' . self::$post_type . '&date=') ?>' + date;
-
-							return false;
-						}
-					)
-				});
-			</script>
-
-		</div><!--wrap-->
-		<?php
+		include plugin_dir_path(__FILE__) . '/templates/admin/calendar.php';
 	}
 
 	static function get_post_meta( $post_id = null ) {
@@ -537,146 +364,9 @@ class Scheduled_Tweets {
 
 		$keys = get_option( 'scheduled_tweets_settings' );
 
-		?>
-		<div class="wrap">
-			<h2>Settings</h2>
+		$plugin_dir_url = plugin_dir_url( __FILE__ );
 
-			<?php if ( isset( $_GET['message'] ) ) : ?>
-				<div class="notice notice-success">
-					<p><?php echo $_GET['message'] ?></p>
-				</div>
-			<?php endif ?>
-
-			<form action="" method="post">
-
-				<table class="form-table">
-					<tbody>
-					<tr>
-						<th>
-							<label for="consumer_key">
-								Consumer key
-							</label>
-						</th>
-						<td>
-							<input name="consumer_key" type="text" id="consumer_key"
-							       value="<?php echo esc_attr( $keys['consumer_key'] ) ?>" class="regular-text"
-							       autocomplete="off">
-						</td>
-					</tr>
-					<tr>
-						<th>
-							<label for="consumer_secret">
-								Consumer Secret
-							</label>
-						</th>
-						<td>
-							<input name="consumer_secret" type="text" id="consumer_secret"
-							       value="<?php echo esc_attr( $keys['consumer_secret'] ) ?>"
-							       class="regular-text" autocomplete="off">
-						</td>
-					</tr>
-					<tr>
-						<th>
-							<label for="access_token">
-								Access Token
-							</label>
-						</th>
-						<td>
-							<input name="access_token" type="text" id="access_token"
-							       value="<?php echo esc_attr( $keys['access_token'] ) ?>" class="regular-text"
-							       autocomplete="off">
-						</td>
-					</tr>
-					<tr>
-						<th>
-							<label for="access_secret">
-								Access Secret
-							</label>
-						</th>
-						<td>
-							<input name="access_secret" type="text" id="access_secret"
-							       value="<?php echo esc_attr( $keys['access_secret'] ) ?>" class="regular-text"
-							       autocomplete="off">
-						</td>
-					</tr>
-					</tbody>
-				</table>
-
-				<?php
-				wp_nonce_field( 'save_settings', self::$post_type );
-				submit_button( 'Submit' );
-				?>
-
-			</form>
-
-			<hr>
-
-			<ol>
-				<li>
-					Visit <a href="https://apps.twitter.com/" target="_blank">https://apps.twitter.com/</a>
-				</li>
-				<li>
-					<p>
-						Click "create new app".
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/create-new-app.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						Fill out the required fields.
-						Recommended: use your domain as a name.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/create-app-form.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						You should see a confirmation notice that your app is created.
-						Copy your consumer key from the data shown into the form above.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/app-created.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						Click on the "Keys and Access Tokens" tab.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/keys-tab.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						Copy your consumer key and consumer key into the form above.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/consumer-keys.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						Scroll down to the "Your Access Token" section.
-						Click the "Create my access token" button.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/create-access-token-button.png">
-					</p>
-				</li>
-				<li>
-					<p>
-						Copy the Access Token and Access Token Secret into the form above.
-					</p>
-					<p>
-						<img src="<?php echo plugin_dir_url( __FILE__ ) ?>/img/access-tokens.png">
-					</p>
-				</li>
-			</ol>
-		</div><!--wrap-->
-		<?php
+		include plugin_dir_path(__FILE__) . '/templates/admin/settings.php';
 	}
 
 	static function save_settings() {
@@ -828,9 +518,9 @@ class Scheduled_Tweets {
 		?>
 
 		<blockquote>
-		<p>
-			<?php echo $content ?>
-		</p>
+			<p>
+				<?php echo $content ?>
+			</p>
 		</blockquote>
 
 		<p style="background: #DDD; padding: 5px;">
@@ -935,7 +625,7 @@ class Scheduled_Tweets {
 			'parent_item_colon'     => 'Parent Tweet:',
 			'all_items'             => 'All Tweets',
 			'add_new_item'          => 'Add New Tweet',
-			'add_new'               => 'Add New',
+			'add_new'               => 'Add One',
 			'new_item'              => 'New Tweet',
 			'edit_item'             => 'Edit Tweet',
 			'update_item'           => 'Update Tweet',
