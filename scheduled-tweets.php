@@ -28,12 +28,15 @@ class Scheduled_Tweets {
 		add_action( 'init', array( __CLASS__, 'register_post_type' ), 0 );
 		add_filter( 'wp_editor_settings', array( __CLASS__, 'remove_tinymce' ), 10, 2 );
 
+		add_action('init', array( __CLASS__, 'check_for_posts' ) );
 		add_action( self::$post_type . '_check', array( __CLASS__, 'check_for_posts' ) );
 
 		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
 
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'dbx_post_sidebar', array( __CLASS__, 'editor_char_count' ) );
+
+		add_action( 'admin_footer', array( __CLASS__, 'admin_footer' ) );
 
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'save_settings' ) );
@@ -43,7 +46,6 @@ class Scheduled_Tweets {
 			__CLASS__,
 			'manage_posts_custom_column'
 		), 10, 2 );
-//		add_action( 'pre_get_posts', array( __CLASS__, 'admin_list_order'), 9 );
 	}
 
 	static function schedule_cron() {
@@ -65,6 +67,17 @@ class Scheduled_Tweets {
 	}
 
 	static function editor_char_count() {
+		global $post;
+
+		if ( ! isset( $_GET['post_type'] ) ) {
+			$_GET['post_type'] = $post->post_type;
+		}
+
+		if ( ! isset( $_GET['post_type'] ) || $_GET['post_type'] != self::$post_type ) {
+			return false;
+		}
+
+
 		?>
 
 		<style>
@@ -107,8 +120,6 @@ class Scheduled_Tweets {
 					.bind('wpcountwords', function (e, txt) {
 						wpCharCount(txt);
 					});
-
-
 			}(jQuery));
 		</script>
 		<?php
@@ -179,10 +190,15 @@ class Scheduled_Tweets {
 				}
 			}
 
+			$content = self::build_tweet_content( $tweet );
+
+			// Don't send if empty.
+			if ( empty($content) && is_null( $media_id ) ) continue;
+
 			$url    = 'https://api.twitter.com/1.1/statuses/update.json';
 			$method = 'POST';
 			$params = array(
-				'status'             => self::build_tweet_content( $tweet ),
+				'status'             => $content,
 				'possibly_sensitive' => false
 			);
 
@@ -272,11 +288,16 @@ class Scheduled_Tweets {
 		);
 	}
 
-	static function render_admin_menu_add_many () {
-		include plugin_dir_path(__FILE__) . '/templates/admin/add-many.php';
+	static function render_admin_menu_add_many() {
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/add-many.php';
 	}
 
 	static function render_admin_menu_calendar() {
+
+		$today_dt = new DateTime( current_time( 'mysql', 1 ) );
+		$today_dt->setTime(0, 0);
+
+		$today    = $today_dt->format( 'Y-m-d' );
 
 		$headings = array( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' );
 
@@ -336,28 +357,7 @@ class Scheduled_Tweets {
 		}
 
 
-		include plugin_dir_path(__FILE__) . '/templates/admin/calendar.php';
-	}
-
-	static function get_post_meta( $post_id = null ) {
-
-		if ( is_null( $post_id ) ) {
-			global $post;
-		} else {
-			$post = get_post( $post_id );
-		}
-
-		$return = array();
-
-		$return['is_tweeted'] = get_post_meta( $post->ID, 'is_tweeted', true );
-		$return['tweeted_dt'] = get_post_meta( $post->ID, 'tweeted_dt', true );
-
-		$return['is_tweet_failed']     = get_post_meta( $post->ID, 'is_tweet_failed', true );
-		$return['tweet_failed_reason'] = get_post_meta( $post->ID, 'tweet_failed_reason', true );
-
-		$return['tweet_data'] = get_post_meta( $post->ID, 'tweet_data', true );
-
-		return $return;
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/calendar.php';
 	}
 
 	static function render_admin_menu_settings() {
@@ -366,7 +366,7 @@ class Scheduled_Tweets {
 
 		$plugin_dir_url = plugin_dir_url( __FILE__ );
 
-		include plugin_dir_path(__FILE__) . '/templates/admin/settings.php';
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/settings.php';
 	}
 
 	static function save_settings() {
@@ -401,12 +401,6 @@ class Scheduled_Tweets {
 		exit;
 	}
 
-//	static function admin_list_order ( $query ) {
-//		if ( !is_admin() || ! $query->is_main_query() || self::$post_type != $query->get( 'post_type' )  ) return;
-//
-//		$query->set( 'orderby',  'post_date_gmt' );
-//	}
-
 	static function manage_posts_columns( $columns ) {
 		unset( $columns['date'] );
 
@@ -415,6 +409,12 @@ class Scheduled_Tweets {
 
 		return $columns;
 	}
+
+//	static function admin_list_order ( $query ) {
+//		if ( !is_admin() || ! $query->is_main_query() || self::$post_type != $query->get( 'post_type' )  ) return;
+//
+//		$query->set( 'orderby',  'post_date_gmt' );
+//	}
 
 	static function manage_posts_custom_column( $column, $post_id ) {
 		global $post;
@@ -463,6 +463,27 @@ class Scheduled_Tweets {
 		}
 	}
 
+	static function get_post_meta( $post_id = null ) {
+
+		if ( is_null( $post_id ) ) {
+			global $post;
+		} else {
+			$post = get_post( $post_id );
+		}
+
+		$return = array();
+
+		$return['is_tweeted'] = get_post_meta( $post->ID, 'is_tweeted', true );
+		$return['tweeted_dt'] = get_post_meta( $post->ID, 'tweeted_dt', true );
+
+		$return['is_tweet_failed']     = get_post_meta( $post->ID, 'is_tweet_failed', true );
+		$return['tweet_failed_reason'] = get_post_meta( $post->ID, 'tweet_failed_reason', true );
+
+		$return['tweet_data'] = get_post_meta( $post->ID, 'tweet_data', true );
+
+		return $return;
+	}
+
 	static function ago( $dt ) {
 
 
@@ -481,6 +502,45 @@ class Scheduled_Tweets {
 			return sprintf( 'In %s', $str );
 		}
 
+	}
+
+	static function admin_footer() {
+		$screen = get_current_screen();
+		if ( $screen->parent_base != 'edit' ) {
+			return false;
+		}
+
+		if ( ! isset( $_GET['date'] ) && ! isset( $_GET['month'] ) && ! isset( $_GET['year'] ) ) {
+			return false;
+		}
+
+		?>
+		<script>
+			jQuery(function ($) {
+
+				<?php if ( isset( $_GET['date'] ) ) : ?>
+				var date = '<?php echo $_GET['date']; ?>';
+				$('#jj').val(date);
+				<?php endif ?>
+
+				<?php if ( isset( $_GET['month'] ) ) : ?>
+				var month = '<?php echo $_GET['month']; ?>';
+				$('#mm').val(month);
+				<?php endif ?>
+
+				<?php if ( isset( $_GET['year'] ) ) : ?>
+				var year = '<?php echo $_GET['year']; ?>';
+				$('#aa').val(year);
+				<?php endif ?>
+
+				setTimeout(function() {
+					$('#timestampdiv .save-timestamp').trigger('click');
+					$('#timestampdiv').show();
+				}, 1000);
+
+			});
+		</script>
+		<?php
 	}
 
 	static function add_meta_boxes() {

@@ -3,7 +3,7 @@
 
 	<style>
 		table.calendar {
-			border-spacing: 2px;
+			border-spacing: 4px;
 			border-collapse: separate;
 			width: 100%;
 		}
@@ -16,6 +16,7 @@
 
 		table.calendar td {
 			background: white;
+			cursor: pointer;
 			max-width: 0;
 			height: 6em;
 			width: <?php echo 100/7 ?>%;
@@ -26,25 +27,52 @@
 			vertical-align: top;
 		}
 
+		table.calendar .past {
+			opacity: .95;
+			cursor: default;
+		}
+
+		table.calendar .past .day-number {
+			opacity: .618;
+		}
+
+
+		table.calendar .today {
+			background: #ffFb4b;
+		}
+
 		table.calendar .calendar-day-np {
-			background: #EEE;
+			background: #DDD;
 		}
 
 		.tweet {
-			color: #999;
+			background: #777;
+			color: white;
 			display: block;
+			margin: 0 -3px 1px;
+			padding-left: 3px;
+			opacity: .618;
 			overflow: hidden;
 			width: 100%;
 			text-overflow: ellipsis;
 			text-decoration: none;
 		}
 
+		.tweet:hover,
+		.tweet:focus,
+		.tweet:active {
+			color: inherit;
+			opacity: 1;
+		}
+
 		.tweet.failed {
-			color: tomato;
+			background: tomato;
+			color: white;
 		}
 
 		.tweet.tweeted {
-			color: limegreen;
+			background: limegreen;
+			color: white;
 		}
 
 	</style>
@@ -64,7 +92,18 @@
 				</a>
 			</th>
 			<th colspan="3">
-				<h3><?php echo $dt->format( 'M, Y' ) ?></h3>
+				<h3>
+					<?php if ( $dt->format( 'Y-m' ) != $today_dt->format( 'Y-m' ) ) : ?>
+						<a href="<?php echo add_query_arg( array(
+							'month' => $today_dt->format( 'm' ),
+							'year'  => $today_dt->format( 'Y' )
+						) ) ?>">
+							<?php echo $dt->format( 'M, Y' ) ?>
+						</a>
+					<?php else : ?>
+						<?php echo $dt->format( 'M, Y' ) ?>
+					<?php endif ?>
+				</h3>
 			</th>
 			<th colspan="2">
 				<a href="<?php echo add_query_arg( array(
@@ -91,20 +130,60 @@
 		<tr class="calendar-row">
 
 			<?php for ( $x = 0; $x < $running_day; $x ++ ): ?>
-				<td class="calendar-day-np">&nbsp;</td>
+				<?php $list_date = sprintf(
+					'%s-%s-01 - %d days',
+					$year,
+					$month,
+					( $running_day - $x )
+				);
+
+				$list_dt = new DateTime( $list_date );
+
+				$diff = $today_dt->diff( $list_dt );
+
+				?>
+				<td class="calendar-day-np <?php echo $diff->format( '%R%a' ) == 0 ? 'today' : '' ?> <?php echo $diff->format( '%R%a' ) < 0 ? 'past' : '' ?>"
+				    data-url="<?php echo esc_attr( add_query_arg(
+					    array(
+						    'post_type' => self::$post_type,
+						    'date'      => $list_dt->format( 'd' ),
+						    'month'     => $list_dt->format( 'm' ),
+						    'year'      => $list_dt->format( 'Y' ),
+					    ),
+					    admin_url( 'post-new.php' )
+				    ) ); ?>">
+
+					<?php echo $list_dt->format( 'j' ) ?>
+				</td>
 				<?php $days_in_this_week ++; ?>
 			<?php endfor; ?>
 
 			<?php for ( $list_day = 1;
 			$list_day <= $days_in_month;
-			$list_day ++ ): ?>
+			$list_day ++ ) : ?>
 			<?php $list_date = sprintf(
 				'%s-%s-%s',
 				$year,
 				str_pad( $month, 2, '0', STR_PAD_LEFT ),
 				str_pad( $list_day, 2, '0', STR_PAD_LEFT )
-			); ?>
-			<td class="calendar-day" data-date="<?php echo $list_date ?>">
+			);
+
+			$list_dt = new DateTime( $list_date );
+
+			$diff = $today_dt->diff( $list_dt );
+
+			?>
+			<td class="calendar-day <?php echo $diff->format( '%R%a' ) == 0 ? 'today' : '' ?> <?php echo $diff->format( '%R%a' ) < 0 ? 'past' : '' ?>"
+			    data-url="<?php echo esc_attr( add_query_arg(
+				    array(
+					    'post_type' => self::$post_type,
+					    'date'      => str_pad( $list_day, 2, '0', STR_PAD_LEFT ),
+					    'month'     => str_pad( $month, 2, '0', STR_PAD_LEFT ),
+					    'year'      => $year
+				    ),
+				    admin_url( 'post-new.php' )
+			    ) ); ?>">
+
 				<div class="day-number"><?php echo $list_day ?></div>
 
 				<?php if ( isset( $tweets_by_date[ $list_date ] ) ) : $tweets_by_date[ $list_date ] = array_reverse( $tweets_by_date[ $list_date ] ); ?>
@@ -149,16 +228,45 @@
 			$day_counter ++; ?>
 			<?php endfor; ?>
 
-			<?php if ( $days_in_this_week < 8 ):
+			<?php if ( $days_in_this_week < 8 && $days_in_this_week > 1 ):
 				for ( $x = 1; $x <= ( 8 - $days_in_this_week ); $x ++ ): ?>
-					<td class="calendar-day-np">&nbsp;</td>
+					<?php $list_date = sprintf(
+						'%s-%s-01 + %d days',
+						$dt_next->format( 'Y' ),
+						$dt_next->format( 'm' ),
+						$x-1
+					);
+
+					$list_dt = new DateTime( $list_date );
+
+					$diff = $today_dt->diff( $list_dt );
+
+					?>
+					<td class="calendar-day-np <?php echo $diff->format( '%R%a' ) == 0 ? 'today' : '' ?> <?php echo $diff->format( '%R%a' ) < 0 ? 'past' : '' ?>"
+					    data-url="<?php echo esc_attr( add_query_arg(
+						    array(
+							    'post_type' => self::$post_type,
+							    'date'      => $list_dt->format( 'd' ),
+							    'month'     => $list_dt->format( 'm' ),
+							    'year'      => $list_dt->format( 'Y' ),
+						    ),
+						    admin_url( 'post-new.php' )
+					    ) ); ?>">
+
+						<?php echo $list_dt->format( 'j' ) ?>
+					</td>
 				<?php endfor; endif; ?>
-
-
 		</tr>
 
 		</tbody>
+
 	</table>
+
+	<p style="text-align: center;">
+		<small>
+			Click a day to add a new tweet.
+		</small>
+	</p>
 
 	<script>
 		jQuery(function ($) {
@@ -171,10 +279,14 @@
 						return true;
 					}
 
-					var date = $(e.target).attr('data-date');
+					var $td = $(e.target);
 
-					// Otherwise, let's creat a new one.
-					window.location = '<?php echo admin_url( '/post-new.php?post_type=' . self::$post_type . '&date=' ) ?>' + date;
+					if ($td.hasClass('past')) return false;
+
+					var url = $td.attr('data-url');
+
+					// Otherwise, let's create a new one.
+					window.location = url;
 
 					return false;
 				}
