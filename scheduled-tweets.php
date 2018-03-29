@@ -28,7 +28,6 @@ class Scheduled_Tweets {
 		add_action( 'init', array( __CLASS__, 'register_post_type' ), 0 );
 		add_filter( 'wp_editor_settings', array( __CLASS__, 'remove_tinymce' ), 10, 2 );
 
-		add_action('init', array( __CLASS__, 'check_for_posts' ) );
 		add_action( self::$post_type . '_check', array( __CLASS__, 'check_for_posts' ) );
 
 		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
@@ -76,7 +75,6 @@ class Scheduled_Tweets {
 		if ( ! isset( $_GET['post_type'] ) || $_GET['post_type'] != self::$post_type ) {
 			return false;
 		}
-
 
 		?>
 
@@ -193,7 +191,9 @@ class Scheduled_Tweets {
 			$content = self::build_tweet_content( $tweet );
 
 			// Don't send if empty.
-			if ( empty($content) && is_null( $media_id ) ) continue;
+			if ( empty( $content ) && is_null( $media_id ) ) {
+				continue;
+			}
 
 			$url    = 'https://api.twitter.com/1.1/statuses/update.json';
 			$method = 'POST';
@@ -295,9 +295,9 @@ class Scheduled_Tweets {
 	static function render_admin_menu_calendar() {
 
 		$today_dt = new DateTime( current_time( 'mysql', 1 ) );
-		$today_dt->setTime(0, 0);
+		$today_dt->setTime( 0, 0 );
 
-		$today    = $today_dt->format( 'Y-m-d' );
+		$today = $today_dt->format( 'Y-m-d' );
 
 		$headings = array( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' );
 
@@ -505,13 +505,27 @@ class Scheduled_Tweets {
 	}
 
 	static function admin_footer() {
+		global $post;
+
 		$screen = get_current_screen();
-		if ( $screen->parent_base != 'edit' ) {
+
+		if ( $screen->parent_base != 'edit' && ! is_null( $post ) && $post->post_type == self::$post_type ) {
 			return false;
 		}
 
 		if ( ! isset( $_GET['date'] ) && ! isset( $_GET['month'] ) && ! isset( $_GET['year'] ) ) {
 			return false;
+		}
+
+		// Simple validation.
+		if ( isset( $_GET['date'] ) ) {
+			$_GET['date'] = str_pad( intval( $_GET['date'] ), 2, '0', STR_PAD_LEFT );
+		}
+		if ( isset( $_GET['month'] ) ) {
+			$_GET['month'] = str_pad( intval( $_GET['month'] ), 2, '0', STR_PAD_LEFT );
+		}
+		if ( isset( $_GET['year'] ) ) {
+			$_GET['year'] = intval( $_GET['year'] );
 		}
 
 		?>
@@ -533,7 +547,7 @@ class Scheduled_Tweets {
 				$('#aa').val(year);
 				<?php endif ?>
 
-				setTimeout(function() {
+				setTimeout(function () {
 					$('#timestampdiv .save-timestamp').trigger('click');
 					$('#timestampdiv').show();
 				}, 1000);
