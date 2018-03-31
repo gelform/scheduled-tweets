@@ -3,7 +3,7 @@
 
 	<?php if ( isset( $_GET['message'] ) ) : ?>
 		<div class="notice notice-success">
-			<p><?php echo $_GET['message'] ?></p>
+			<p><?php echo sanitize_text_field($_GET['message']) ?></p>
 		</div>
 	<?php endif ?>
 

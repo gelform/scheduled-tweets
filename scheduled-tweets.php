@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name: Scheduled Tweets
- * Description: Schedule tweets to tweet to your twitter account
+ * Description: Schedule tweets to tweet to your Twitter account.
  * Version:     0.0.1
  * Plugin Name: WordPress.org Plugin
  * Plugin URI:  https://developer.wordpress.org/plugins/scheduled-tweets/
@@ -230,7 +230,7 @@ class Scheduled_Tweets {
 	}
 
 	static function connect() {
-		require_once( __DIR__ . '/TwitterAPIExchange.php' );
+		require_once( __DIR__ . '/lib/TwitterAPIExchange.php' );
 
 		$keys = get_option( 'scheduled_tweets_settings' );
 
@@ -660,6 +660,11 @@ class Scheduled_Tweets {
 	}
 
 	static function set_title( $data, $postarr ) {
+		if ( !isset($data['post_type']) || $data['post_type'] != self::$post_type ) {
+			return $data;
+		}
+
+
 		// Set slug
 		$data['post_name'] = substr(
 			sanitize_title( $data['post_content'] ),

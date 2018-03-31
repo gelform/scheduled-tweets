@@ -8,11 +8,13 @@ Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Schedule tweets to tweet to your twitter account. Add tweets to a calendar. Plan a Twitter campaign.
+Schedule tweets to tweet to your Twitter account.
+Add tweets to a calendar.
+Plan a Twitter campaign.
 
 == Description ==
 
-Schedule tweets to tweet to your twitter account. Add tweets to a calendar. Plan a Twitter campaign.
+Schedule tweets to tweet to your twitter account. Add tweets to a calendar. Plan a Twitter campaign. Host your own Buffer or Social Pilot.
 
 == Installation ==
 
