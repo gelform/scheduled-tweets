@@ -1,12 +1,14 @@
 === Scheduled Tweets ===
-Contributors: gelform
-Tags: twitter, tweet, buffer, social pilot
+Contributors:      gelform
+Tags:              Twitter, tweet, buffer, social pilot
+Version:           0.0.2
+Release Date:      March 31, 2018
 Requires at least: 4.0
-Tested up to: 4.9.4
-Requires PHP: 5.3
-Stable tag: trunk
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tested up to:      4.9.4
+Requires PHP:      5.3
+Stable tag:        trunk
+License:           GPLv2 or later
+License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 
 Schedule tweets to tweet to your Twitter account.
 Add tweets to a calendar.
@@ -51,3 +53,13 @@ To schedule a tweet in the future:
 2. View your tweets on a calendar.
 3. Edit a single tweet with hashtags and an image.
 
+== Changelog ==
+
+= 0.0.2 =
+* Fixed non-sending SSL check
+* Added live preview
+* Using TinyMCE formatting now
+* Added settings test
+
+= 0.0.1 =
+* Initial commit

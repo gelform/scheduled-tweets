@@ -1,16 +1,16 @@
 <?php
 
 /**
- * Plugin Name: Scheduled Tweets
- * Description: Schedule tweets to tweet to your Twitter account.
- * Version:     0.0.1
- * Plugin Name: WordPress.org Plugin
- * Plugin URI:  https://developer.wordpress.org/plugins/scheduled-tweets/
- * Author:      Gelform
- * Author URI:  https://gelform.com
- * License:     GPL2
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- *
+Plugin Name:  Scheduled Tweets
+Description:  Schedule tweets to tweet to your Twitter account.
+Version:      0.0.2
+Release Date: March 31, 2018
+Plugin Name:  WordPress.org Plugin
+Plugin URI:   https://developer.wordpress.org/plugins/scheduled-tweets/
+Author:       Gelform
+Author URI:   https://gelform.com
+License:      GPL2
+License URI:  https://www.gnu.org/licenses/gpl-2.0.html
 
  */
 
@@ -24,27 +24,96 @@ class Scheduled_Tweets {
 	static function init() {
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedule' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_cron' ), 0 );
-
 		add_action( 'init', array( __CLASS__, 'register_post_type' ), 0 );
-		add_filter( 'wp_editor_settings', array( __CLASS__, 'remove_tinymce' ), 10, 2 );
 
-		add_action( self::$post_type . '_check', array( __CLASS__, 'check_for_posts' ) );
-
-		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
-
-		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
-		add_action( 'dbx_post_sidebar', array( __CLASS__, 'editor_char_count' ) );
-
-		add_action( 'admin_footer', array( __CLASS__, 'admin_footer' ) );
-
+		// Admin.
 		add_action( 'admin_menu', array( __CLASS__, 'add_admin_menu' ) );
+		add_action( 'admin_init', array( __CLASS__, 'check_settings_show_notice' ) );
+
 		add_action( 'admin_init', array( __CLASS__, 'save_settings' ) );
 
+		// Tweet list screen.
+//		add_filter('post_row_actions', array(__CLASS__, 'add_copy_action'),10,2);
 		add_filter( 'manage_' . self::$post_type . '_posts_columns', array( __CLASS__, 'manage_posts_columns' ) );
-		add_filter( 'manage_' . self::$post_type . '_posts_custom_column', array(
-			__CLASS__,
-			'manage_posts_custom_column'
-		), 10, 2 );
+		add_filter( 'manage_' . self::$post_type . '_posts_custom_column', array(__CLASS__, 'manage_posts_custom_column' ), 10, 2 );
+		add_action( 'admin_footer', array( __CLASS__, 'admin_footer_list' ) );
+
+		// Tweet edit screen.
+		add_filter( 'wp_editor_settings', array( __CLASS__, 'remove_tinymce' ), 10, 2 );
+		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_enqueue_scripts' ) );
+		add_action( 'admin_footer', array( __CLASS__, 'admin_footer_single' ) );
+
+		// After tweet is saved.
+		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
+
+		// Send Tweets.
+		add_action( self::$post_type . '_check', array( __CLASS__, 'check_for_posts' ) );
+
+		// For testing.
+		if ( isset($_GET[self::$post_type]) && $_GET[self::$post_type] == 'check_for_posts' ) {
+			add_action( 'admin_init', array( __CLASS__, 'check_for_posts' ) );
+		}
+	}
+
+//	static function add_copy_action ($actions, $post) {
+//		if ( $post->post_type != self::$post_type ) return $actions;
+//
+//		$actions['clone'] = '<a href="#" title="'
+//		                    . esc_attr__("Copy and schedule")
+//		                    . '">' .  esc_html__('Copy') . '</a>';
+//
+//		return $actions;
+//	}
+
+	static function show_admin_notice_settings() {
+		?>
+		<div class="notice notice-warning is-dismissible">
+			<p><?php echo sprintf(
+					_( 'Your settings are incomplete! Tweets will not be sent. Fill out your settings <a href="%s">here</a>.' ),
+					add_query_arg(
+						array(
+							'post_type' => self::$post_type,
+							'page' => self::$post_type . '_settings'
+						),
+						admin_url('edit.php')
+					)
+				); ?></p>
+		</div>
+		<?php
+	}
+
+	static function check_settings_show_notice () {
+
+		if ( !isset($_GET['post_type']) || $_GET['post_type'] != self::$post_type ) return false;
+
+		$keys = get_option( 'scheduled_tweets_settings' );
+
+		if ( count($keys) != 4 || empty($keys['consumer_key']) || empty($keys['consumer_secret']) || empty($keys['access_token']) || empty($keys['access_secret']) ) {
+			add_action( 'admin_notices', array(__CLASS__, 'show_admin_notice_settings') );
+		}
+	}
+
+	static function admin_enqueue_scripts () {
+		global $post;
+
+		if ( $post->post_type != self::$post_type ) return false;
+
+		wp_enqueue_script('jquery-ui-datepicker');
+
+		wp_register_style('jquery-ui', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css');
+		wp_enqueue_style('jquery-ui');
+
+		wp_enqueue_script(
+			'timepicker',
+			plugin_dir_url(__FILE__) . '/js/jquery.timepicker.min.js',
+			array('jquery', 'jquery-ui-core', 'jquery-ui-datepicker')
+		);
+
+		wp_enqueue_style(
+			'timepicker',
+			plugin_dir_url(__FILE__) . '/css/jquery.timepicker.min.css'
+		);
 	}
 
 	static function schedule_cron() {
@@ -57,70 +126,12 @@ class Scheduled_Tweets {
 	static function add_cron_schedule( $schedules ) {
 		if ( ! isset( $schedules["5min"] ) ) {
 			$schedules["5min"] = array(
-				'interval' => 5 * 60,
+				'interval' => 560,
 				'display'  => __( 'Once every 5 minutes' )
 			);
 		}
 
 		return $schedules;
-	}
-
-	static function editor_char_count() {
-		global $post;
-
-		if ( ! isset( $_GET['post_type'] ) ) {
-			$_GET['post_type'] = $post->post_type;
-		}
-
-		if ( ! isset( $_GET['post_type'] ) || $_GET['post_type'] != self::$post_type ) {
-			return false;
-		}
-
-		?>
-
-		<style>
-			#content {
-				max-height: 10em;
-			}
-		</style>
-
-		<script type="text/javascript">
-			(function ($) {
-				wpCharCount = function (txt) {
-					var len = '' + txt.length;
-
-					var html = len;
-					if (len > 140) {
-						var html = '<b style="background: tomato; color: white; padding: .5em;">' + len + '</b>';
-					}
-
-					$('.char-count').html(html);
-					return len;
-				};
-				$(document).ready(function () {
-					$('#wp-word-count').append('<br />Char count: <span class="char-count">0</span>');
-
-					$('#content').bind('change keydown paste', function () {
-						var val = $('#content').val();
-						var count = wpCharCount(val);
-						if (count > 300) {
-							$('#content').val(
-								val.substring(0, 300)
-							);
-
-							wpCharCount(val);
-							return false;
-						}
-					});
-
-					$('#content').trigger('keydown');
-				})
-					.bind('wpcountwords', function (e, txt) {
-						wpCharCount(txt);
-					});
-			}(jQuery));
-		</script>
-		<?php
 	}
 
 	static function check_for_posts() {
@@ -153,7 +164,11 @@ class Scheduled_Tweets {
 			return;
 		}
 
-		self::connect();
+		$is_connected = self::connect();
+
+		if ( !$is_connected ) {
+			return false;
+		}
 
 		foreach ( $tweets as $tweet ) {
 
@@ -234,12 +249,18 @@ class Scheduled_Tweets {
 
 		$keys = get_option( 'scheduled_tweets_settings' );
 
-		self::$exchange = new TwitterAPIExchange( array(
-			'consumer_key'              => $keys['consumer_key'],
-			'consumer_secret'           => $keys['consumer_secret'],
-			'oauth_access_token'        => $keys['access_token'],
-			'oauth_access_token_secret' => $keys['access_secret']
-		) );
+		try {
+			self::$exchange = new TwitterAPIExchange( array(
+				'consumer_key'              => $keys['consumer_key'],
+				'consumer_secret'           => $keys['consumer_secret'],
+				'oauth_access_token'        => $keys['access_token'],
+				'oauth_access_token_secret' => $keys['access_secret']
+			) );
+
+			return true;
+		} catch (Exception $e) {
+			return false;
+		}
 	}
 
 	static function build_tweet_content( $post ) {
@@ -406,6 +427,7 @@ class Scheduled_Tweets {
 
 		$columns['is_tweeted'] = 'Status';
 		$columns['tweeted_dt'] = 'When';
+		$columns['copy'] = 'Copy';
 
 		return $columns;
 	}
@@ -460,6 +482,24 @@ class Scheduled_Tweets {
 				<?php
 				break;
 
+			case 'copy':
+				?>
+			<a href="#" class="button button-default">
+				Copy
+			</a>
+
+			<form action="">
+				<div class="datepicker"></div>
+				<p>
+					<input type="text" class="timepicker">
+				</p>
+
+				<?php
+				wp_nonce_field( 'save_settings', self::$post_type );
+				submit_button( 'Submit' );
+				?>
+			</form>
+			<?php
 		}
 	}
 
@@ -504,16 +544,21 @@ class Scheduled_Tweets {
 
 	}
 
-	static function admin_footer() {
-		global $post;
+	static function admin_footer_list () {
 
 		$screen = get_current_screen();
 
-		if ( $screen->parent_base != 'edit' && ! is_null( $post ) && $post->post_type == self::$post_type ) {
+		if ( $screen->parent_base != 'edit' || $screen->base != 'edit' || ! isset($_GET['post_type']) || $_GET['post_type'] != self::$post_type ) {
 			return false;
 		}
+	}
 
-		if ( ! isset( $_GET['date'] ) && ! isset( $_GET['month'] ) && ! isset( $_GET['year'] ) ) {
+	static function admin_footer_single() {
+		global $post;
+
+		$screen = get_current_screen();
+		
+		if ( $screen->parent_base != 'edit' || $screen->base != 'post' || ! isset($_GET['post_type']) || $_GET['post_type'] != self::$post_type ) {
 			return false;
 		}
 
@@ -529,28 +574,150 @@ class Scheduled_Tweets {
 		}
 
 		?>
+		<style>
+			#content {
+				max-height: 10em;
+			}
+
+			#mceu_25,
+			.mce-toolbar-grp,
+			.mce-flow-layout {
+				display: none;
+			}
+
+			#<?php echo self::$post_type ?>-preview,
+			#<?php echo self::$post_type ?>-preview p {
+				font-size: 20px;
+			}
+
+			#visibility {
+				display: none;
+			}
+		</style>
+
 		<script>
 			jQuery(function ($) {
 
 				<?php if ( isset( $_GET['date'] ) ) : ?>
-				var date = '<?php echo $_GET['date']; ?>';
-				$('#jj').val(date);
+				$('#jj').val('<?php echo $_GET['date']; ?>');
 				<?php endif ?>
 
 				<?php if ( isset( $_GET['month'] ) ) : ?>
-				var month = '<?php echo $_GET['month']; ?>';
-				$('#mm').val(month);
+				$('#mm').val('<?php echo $_GET['month']; ?>');
 				<?php endif ?>
 
 				<?php if ( isset( $_GET['year'] ) ) : ?>
-				var year = '<?php echo $_GET['year']; ?>';
-				$('#aa').val(year);
+				$('#aa').val('<?php echo $_GET['year']; ?>');
 				<?php endif ?>
 
 				setTimeout(function () {
 					$('#timestampdiv .save-timestamp').trigger('click');
-					$('#timestampdiv').show();
 				}, 1000);
+
+				var default_date = $('#aa').val() + '-' + $('#mm').val() + '-' + $('#jj').val();
+
+				$('<div id="<?php echo self::$post_type ?>-datepicker"></div>')
+				.insertBefore('.misc-pub-curtime')
+				.datepicker({
+					firstDay: 0,
+					minDate: new Date(),
+					dayNames: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
+					dayNamesMin: [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+					dateFormat: "yy-mm-dd",
+					defaultDate: default_date,
+					onSelect: function (dateText) {
+						var date_arr = dateText.split('-');
+						var year = date_arr[0];
+						var month = date_arr[1];
+						var date = date_arr[2];
+
+						$('#aa').val(year);
+						$('#mm').val(month);
+						$('#jj').val(date);
+						$('#timestampdiv .save-timestamp').trigger('click');
+					}
+				});
+
+				$('#aa, #mm, #jj').on('change', function() {
+					$( "#<?php echo self::$post_type ?>-datepicker" ).datepicker( "setDate", $('#aa').val() + '-' + $('#mm').val() + '-' + $('#jj').val() );
+				});
+
+				$('<p style="text-align: center;">At: <input type="text" id="<?php echo self::$post_type ?>-timepicker"></p>')
+				.insertAfter('#<?php echo self::$post_type ?>-datepicker');
+
+				var hour = $('#hh').val();
+				var min = $('#mn').val();
+
+				$('#<?php echo self::$post_type ?>-timepicker').timepicker({
+					timeFormat: 'H:i'
+				})
+				.val(hour + ':' + min)
+				.on('changeTime', function () {
+					var time = $(this).val();
+					var time_arr = time.split(':');
+
+					$('#hh').val(time_arr[0]);
+					$('#mn').val(time_arr[1]);
+					$('#timestampdiv .save-timestamp').trigger('click');
+				});
+
+				$('#hh, #mn').on('change', function() {
+					var hour = $('#hh').val();
+					var min = $('#mn').val();
+
+					$('#<?php echo self::$post_type ?>-timepicker').val(hour + ':' + min).trigger('changeTime');
+				});
+
+				wpCharCount = function () {
+
+					var html = tinymce.activeEditor.getContent();
+
+					var tags = [];
+					$('#<?php echo self::$post_type ?>_tagschecklist [type="checkbox"]:checked').each(function () {
+						var tag = $(this).closest('label').text();
+
+						if ( '' != tag ) {
+
+							tags.push('#' + $.trim(tag));
+						}
+					});
+
+					html += ' ' + tags.join(' ');
+
+					$('#<?php echo self::$post_type ?>-preview').html(html);
+
+					var txt = $('<div />').html(html).text();
+
+					var len = '' + txt.length;
+
+					var count = len;
+					if (len > 280) {
+						var count = '<b style="background: tomato; color: white; padding: .5em;">' + len + '</b>';
+					}
+					$('.char-count').html(count);
+
+					$('#<?php echo self::$post_type ?>-preview-count').html(count);
+
+				};
+
+				$(document).ready(function () {
+					$('#wp-word-count').append('<br />Char count: <span class="char-count">0</span>');
+				})
+				.bind('wpcountwords', function (e, txt) {
+					wpCharCount(txt);
+				});
+
+				$('#content').bind('keyup', function() {
+					wpCharCount();
+				});
+
+				setTimeout(function () {
+					$('#content').trigger('keyup');
+
+					setInterval(function () {
+						$('#content').trigger('keyup');
+					}, 1000);
+				}, 500);
 
 			});
 		</script>
@@ -589,25 +756,7 @@ class Scheduled_Tweets {
 
 		$strlen = strlen( $content );
 
-		?>
-
-		<blockquote>
-			<p>
-				<?php echo $content ?>
-			</p>
-		</blockquote>
-
-		<p style="background: #DDD; padding: 5px;">
-			<?php if ( $strlen > 140 ) : ?>
-				<b style="background: tomato; color: white; padding: .5em;">
-					<?php echo $strlen ?> characters
-				</b>
-			<?php else : // $strlen ?>
-				<?php echo $strlen ?> characters
-			<?php endif // $strlen ?>
-		</p>
-
-		<?php
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/meta_box-preview.php';
 	}
 
 	static function render_meta_box_status() {
@@ -621,42 +770,7 @@ class Scheduled_Tweets {
 			$dt = $post->post_date_gmt;
 		}
 
-		?>
-		<p>
-			Status:
-			<?php if ( $post_meta['is_tweet_failed'] == 1 ) : ?>
-				<b style="background: tomato; color: white; padding: .5em;">Failed!</b>
-			<?php else : // is_tweet_failed ?>
-				<?php if ( $post_meta['is_tweeted'] == 1 ) : ?>
-					<b style="background: limegreen; color: white; padding: .5em;">Tweeted!</b>
-				<?php else : // $is_tweeted ?>
-					Not yet
-				<?php endif // $is_tweeted ?>
-			<?php endif // $is_tweet_failed ?>
-		</p>
-
-
-		<p>
-			<?php if ( $post_meta['is_tweeted'] == 1 ) : ?>
-
-				Tweeted: <?php echo self::ago( $dt ); ?>
-
-			<?php elseif ( $post->post_status != 'auto-draft' && $post->post_status != 'draft' ) : // $is_tweeted ?>
-				Scheduled: <?php echo self::ago( $dt ); ?>
-			<?php endif // $is_tweeted ?>
-		</p>
-
-		<?php if ( $post_meta['is_tweet_failed'] == 1 ) : ?>
-			<p>
-				Failed: <?php echo self::ago( $dt ); ?>
-			</p>
-			<p>
-				Reason: <?php echo $post_meta['weet_failed_reason'] ?>
-			</p>
-		<?php endif // $is_tweeted ?>
-
-
-		<?php
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/meta_box-status.php';
 	}
 
 	static function set_title( $data, $postarr ) {
@@ -683,7 +797,7 @@ class Scheduled_Tweets {
 
 	static function remove_tinymce( $settings, $editor_id ) {
 		if ( $editor_id === 'content' && get_current_screen()->post_type === self::$post_type ) {
-			$settings['tinymce']       = false;
+//			$settings['tinymce']       = false;
 			$settings['quicktags']     = false;
 			$settings['media_buttons'] = false;
 		}
