@@ -2,7 +2,7 @@
 Contributors:      gelform
 Tags:              Twitter, tweet, buffer, social pilot
 Version:           0.0.2
-Release Date:      March 31, 2018
+Release Date: April 2, 2018
 Requires at least: 4.0
 Tested up to:      4.9.4
 Requires PHP:      5.3

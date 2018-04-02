@@ -4,7 +4,7 @@
 Plugin Name:  Scheduled Tweets
 Description:  Schedule tweets to tweet to your Twitter account.
 Version:      0.0.2
-Release Date: March 31, 2018
+Release Date: April 2, 2018
 Plugin Name:  WordPress.org Plugin
 Plugin URI:   https://developer.wordpress.org/plugins/scheduled-tweets/
 Author:       Gelform
