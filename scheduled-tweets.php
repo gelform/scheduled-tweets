@@ -2,8 +2,8 @@
 
 /**
 Plugin Name:  Scheduled Tweets
-Description:  Schedule tweets to tweet to your Twitter account.
-Version:      0.0.2
+Description:  Schedule tweets to tweet to your Twitter account. Add tweets to a calendar. Plan a Twitter campaign. Host your own Buffer app.
+Version:      0.0.3
 Release Date: April 2, 2018
 Plugin Name:  WordPress.org Plugin
 Plugin URI:   https://developer.wordpress.org/plugins/scheduled-tweets/
@@ -93,10 +93,16 @@ class Scheduled_Tweets {
 			if (DateTime::createFromFormat('Y-m-d H:i:s', $_GET['date']) !== FALSE) {
 				$post_date_dt = DateTime::createFromFormat('Y-m-d H:i:s', $_GET['date']) ;
 
-				$post->post_date_gmt = $_GET['date'];
+				$post->post_date_gmt = $post_date_dt->format('Y-m-d H:i:s');
+
+				$gmt_offset = get_option('gmt_offset');
+				if ( !empty($gmt_offset) ) {
+					$post_date_dt->modify($gmt_offset . ' hours');
+				}
+
+				$post->post_date = $post_date_dt->format('Y-m-d H:i:s');
 			}
 		}
-
 
 		// Copy post
 		$new_post_id = wp_insert_post( (array) $post );
@@ -148,7 +154,7 @@ class Scheduled_Tweets {
 
 		wp_enqueue_script('jquery-ui-datepicker');
 
-		wp_register_style('jquery-ui', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css');
+		wp_register_style('jquery-ui', '//ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css');
 		wp_enqueue_style('jquery-ui');
 
 		wp_enqueue_script(

@@ -42,52 +42,63 @@
 
 
 				$('.datepicker', $wrapper)
-					.datepicker({
-						firstDay: 0,
-						minDate: new Date(),
-						dayNames: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
-						dayNamesMin: [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
-						dateFormat: "yy-mm-dd",
-						defaultDate: date
-					});
+				.datepicker({
+					firstDay: 0,
+					minDate: new Date(),
+					dayNames: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
+					dayNamesMin: [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+					dateFormat: "yy-mm-dd",
+					defaultDate: date
+				});
 
 
 				$('.timepicker', $wrapper).timepicker({
 					timeFormat: 'H:i'
-				})
-				.val(time);
+				}).val(time);
 			}
 		);
 
-	$('.<?php echo self::$post_type ?>-copy-form-submit').on(
-		'click',
-		function () {
-			var $btn = $(this);
-			var $wrapper = $btn.closest('.<?php echo self::$post_type ?>-copy-wrapper');
+		$('.<?php echo self::$post_type ?>-copy-form-submit').on(
+			'click',
+			function () {
+				var $btn = $(this);
+				var $wrapper = $btn.closest('.<?php echo self::$post_type ?>-copy-wrapper');
 
-			var date = $('.datepicker', $wrapper).datepicker( "getDate" );
-			var time = $('.timepicker', $wrapper).timepicker('getTime');
-			var post_id = $btn.attr('data-post_id');
+				var date = $('.datepicker', $wrapper).datepicker( "getDate" );
+				var time = $('.timepicker', $wrapper).timepicker('getTime');
+				var post_id = $btn.attr('data-post_id');
 
-			if ( !(date instanceof Date) || !(time instanceof Date) || '' == post_id || isNaN(post_id) ) {
-				return false;
-			}
+				if ( !(date instanceof Date) || !(time instanceof Date) || '' == post_id || isNaN(post_id) ) {
+					return false;
+				}
 
-			var params = {
-				date: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + time.getHours() + ':' + time.getMinutes() + ':00',
-				post_id: post_id
-			};
+				var full_date = date.getFullYear()
+					+ '-'
+					+ ( '0' + (date.getMonth() + 1)).slice(-2)
+					+ '-'
+					+ ( '0' + date.getDate()).slice(-2)
+					+ ' '
+					+ ( '0' + time.getHours()).slice(-2)
+					+ ':'
+					+ ( '0' + time.getMinutes()).slice(-2)
+					+ ':00';
 
-			var queryString = $.param(params);
 
-			var url = '<?php echo add_query_arg(array(
+				var params = {
+					date: full_date,
+					post_id: post_id
+				};
+
+				var queryString = $.param(params);
+
+				var url = '<?php echo add_query_arg(array(
 					'post_type' => self::$post_type,
 					self::$post_type => 'copy'
 
 				)); ?>&' + queryString;
 
-			window.location = url;
-		});
+				window.location = url;
+			});
 
 		$('.<?php echo self::$post_type ?>-copy-cancel').on(
 			'click',

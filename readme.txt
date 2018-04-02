@@ -1,7 +1,7 @@
 === Scheduled Tweets ===
 Contributors:      gelform
-Tags:              Twitter, tweet, buffer, social pilot
-Version:           0.0.2
+Tags:              Twitter, tweet, Buffer, Social Pilot
+Version:      0.0.3
 Release Date: April 2, 2018
 Requires at least: 4.0
 Tested up to:      4.9.4
@@ -10,9 +10,7 @@ Stable tag:        trunk
 License:           GPLv2 or later
 License URI:       http://www.gnu.org/licenses/gpl-2.0.html
 
-Schedule tweets to tweet to your Twitter account.
-Add tweets to a calendar.
-Plan a Twitter campaign.
+Schedule tweets to tweet to your Twitter account. Add tweets to a calendar. Plan a Twitter campaign. Host your own Buffer app.
 
 == Description ==
 
@@ -55,13 +53,18 @@ To schedule a tweet in the future:
 
 == Changelog ==
 
+= 0.0.3 =
+* Fixed date format bug in javascript.
+* Post_date is now set on copy.
+* Fixed https on jQueryUI css.
+
 = 0.0.2 =
-* Fixed non-sending SSL check
-* Added live preview
-* Using TinyMCE formatting now
-* Added settings test
-* Added datepicker and timepicker
-* Added option to copy and reschedule tweet
+* Fixed non-sending SSL check.
+* Added live preview.
+* Using TinyMCE formatting now.
+* Added settings test.
+* Added datepicker and timepicker.
+* Added option to copy and reschedule tweet.
 
 = 0.0.1 =
-* Initial commit
+* Initial commit.
