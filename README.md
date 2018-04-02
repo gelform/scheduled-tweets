@@ -6,12 +6,20 @@ Schedule tweets from your WordPress website with Buffer-like functionality.
 
 https://wordpress.org/plugins/scheduled-tweets/
 
+## Screenshots:
+![Manage your tweets.](https://ps.w.org/scheduled-tweets/assets/screenshot-1.png)
+
+![View your tweets on a calendar.](https://ps.w.org/scheduled-tweets/assets/screenshot-2.png)
+
+![Edit a single tweet with hashtags and an image.](https://ps.w.org/scheduled-tweets/assets/screenshot-3.png)
+
 ## todo:
 - Bulk upload (CSV?)
 - Add drag and drop to calendar
 - ✓ Copy and reschedule
 - ✓ Test empty message, other errors
 - ✓ Make preview live
+
  
 ## References:
 
