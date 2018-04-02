@@ -190,7 +190,7 @@
 					<?php foreach ( $tweets_by_date[ $list_date ] as $tweet ) : ?>
 						<?php
 
-						$tweet_dt = new DateTime( $tweet->post_date );
+						$tweet_dt = new DateTime( $tweet->post_date_gmt );
 
 						$post_meta = self::get_post_meta( $tweet->ID );
 

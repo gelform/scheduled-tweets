@@ -47,6 +47,9 @@ class Scheduled_Tweets {
 		// After tweet is saved.
 		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
 
+		// Copy tweet.
+		add_action('admin_init', array( __CLASS__, 'copy_post' ) );
+
 		// Send Tweets.
 		add_action( self::$post_type . '_check', array( __CLASS__, 'check_for_posts' ) );
 
@@ -65,6 +68,50 @@ class Scheduled_Tweets {
 //
 //		return $actions;
 //	}
+
+	static function copy_post () {
+		if ( !isset($_GET[self::$post_type]) || $_GET[self::$post_type] != 'copy' || !isset($_GET['post_id']) ) return false;
+
+		$url_redirect = add_query_arg(
+			array(
+				'post_type' => self::$post_type
+			),
+			admin_url('edit.php')
+		);
+
+		$_GET['post_id'] = absint($_GET['post_id']);
+		$post = get_post($_GET['post_id']);
+
+		if ( empty($post) ) {
+			wp_redirect( $url_redirect );
+		}
+
+		unset($post->ID);
+
+		if ( isset($_GET['date']) ) {
+
+			if (DateTime::createFromFormat('Y-m-d H:i:s', $_GET['date']) !== FALSE) {
+				$post_date_dt = DateTime::createFromFormat('Y-m-d H:i:s', $_GET['date']) ;
+
+				$post->post_date_gmt = $_GET['date'];
+			}
+		}
+
+
+		// Copy post
+		$new_post_id = wp_insert_post( (array) $post );
+
+		// Copy terms;
+		$post_terms = wp_get_object_terms(
+			$_GET['post_id'],
+			self::$post_type . '_tags',
+			array('fields' => 'slugs')
+		);
+
+		wp_set_object_terms($new_post_id, $post_terms, self::$post_type . '_tags', false);
+
+		wp_redirect($url_redirect);
+	}
 
 	static function show_admin_notice_settings() {
 		?>
@@ -368,7 +415,7 @@ class Scheduled_Tweets {
 
 		$tweets_by_date = array();
 		foreach ( $tweets as $tweet ) {
-			$date = substr( $tweet->post_date, 0, 10 );
+			$date = substr( $tweet->post_date_gmt, 0, 10 );
 
 			if ( ! isset( $tweets_by_date[ $date ] ) ) {
 				$tweets_by_date[ $date ] = array();
@@ -432,74 +479,33 @@ class Scheduled_Tweets {
 		return $columns;
 	}
 
-//	static function admin_list_order ( $query ) {
-//		if ( !is_admin() || ! $query->is_main_query() || self::$post_type != $query->get( 'post_type' )  ) return;
-//
-//		$query->set( 'orderby',  'post_date_gmt' );
-//	}
-
 	static function manage_posts_custom_column( $column, $post_id ) {
 		global $post;
 
 		$post_meta = self::get_post_meta( $post_id );
 
-		if ( $post_meta['is_tweeted'] == 1 ) {
-			$dt = $post_meta['tweeted_dt'];
-		} else {
-			$dt = $post->post_date_gmt;
-		}
+		$post_date = ( $post_meta['is_tweeted'] == 1 ) ? $post_meta['tweeted_dt'] : $post->post_date_gmt;
+
+		$dt = new DateTime($post_date);
 
 		switch ( $column ) {
 			case 'is_tweeted' :
-				?>
-				<?php if ( $post_meta['is_tweet_failed'] == 1 ) : ?>
-				<b style="color: tomato; color: white; padding: .5em;">Failed</b>
-			<?php else : // is_tweet_failed ?>
-
-				<?php if ( $post_meta['is_tweeted'] == 1 ) : ?>
-					<b style="color: limegreen;">Tweeted</b>
-				<?php else : // $is_tweeted ?>
-					Scheduled
-				<?php endif // $is_tweeted ?>
-			<?php endif // $is_tweet_failed
-				?>
-				<?php
+				include plugin_dir_path( __FILE__ ) . '/templates/admin/col-is_tweeted.php';
 				break;
 
 			case 'tweeted_dt' :
-				?>
-				<?php if ( $post_meta['is_tweet_failed'] == 1 ) : ?>
-				<?php echo self::ago( $dt ); ?>
-			<?php else : // is_tweet_failed ?>
-
-				<?php if ( $post_meta['is_tweeted'] == 1 ) : ?>
-					<?php echo self::ago( $dt ); ?>
-				<?php elseif ( $post->post_status != 'auto-draft' && $post->post_status != 'draft' ) : // $is_tweeted ?>
-					<?php echo self::ago( $dt ); ?>
-				<?php endif // $is_tweeted ?>
-			<?php endif // $is_tweet_failed
-				?>
-				<?php
+				include plugin_dir_path( __FILE__ ) . '/templates/admin/col-tweeted_dt.php';
 				break;
 
 			case 'copy':
-				?>
-			<a href="#" class="button button-default">
-				Copy
-			</a>
+				$now_gmt_dt = new DateTime(current_time('mysql', 1));
 
-			<form action="">
-				<div class="datepicker"></div>
-				<p>
-					<input type="text" class="timepicker">
-				</p>
+				if ( $dt < $now_gmt_dt ) {
+					$dt = $now_gmt_dt;
+				}
 
-				<?php
-				wp_nonce_field( 'save_settings', self::$post_type );
-				submit_button( 'Submit' );
-				?>
-			</form>
-			<?php
+				include plugin_dir_path( __FILE__ ) . '/templates/admin/col-copy.php';
+				break;
 		}
 	}
 
@@ -551,14 +557,17 @@ class Scheduled_Tweets {
 		if ( $screen->parent_base != 'edit' || $screen->base != 'edit' || ! isset($_GET['post_type']) || $_GET['post_type'] != self::$post_type ) {
 			return false;
 		}
+
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/footer-list.php';
 	}
 
 	static function admin_footer_single() {
-		global $post;
+//		global $post;
+//		(isset($_GET['post_type']) && $_GET['post_type'] != self::$post_type)
 
 		$screen = get_current_screen();
-		
-		if ( $screen->parent_base != 'edit' || $screen->base != 'post' || ! isset($_GET['post_type']) || $_GET['post_type'] != self::$post_type ) {
+
+		if ( $screen->parent_base != 'edit' || $screen->base != 'post' || $screen->id != self::$post_type ) {
 			return false;
 		}
 
@@ -571,6 +580,13 @@ class Scheduled_Tweets {
 		}
 		if ( isset( $_GET['year'] ) ) {
 			$_GET['year'] = intval( $_GET['year'] );
+		}
+
+		if ( isset( $_GET['hour'] ) ) {
+			$_GET['hour'] = str_pad( intval( $_GET['hour'] ), 2, '0', STR_PAD_LEFT );
+		}
+		if ( isset( $_GET['minute'] ) ) {
+			$_GET['minute'] = str_pad( intval( $_GET['minute'] ), 2, '0', STR_PAD_LEFT );
 		}
 
 		?>
@@ -608,6 +624,14 @@ class Scheduled_Tweets {
 
 				<?php if ( isset( $_GET['year'] ) ) : ?>
 				$('#aa').val('<?php echo $_GET['year']; ?>');
+				<?php endif ?>
+
+				<?php if ( isset( $_GET['hour'] ) ) : ?>
+				$('#hh').val('<?php echo $_GET['hour']; ?>');
+				<?php endif ?>
+
+				<?php if ( isset( $_GET['minute'] ) ) : ?>
+				$('#mn').val('<?php echo $_GET['minute']; ?>');
 				<?php endif ?>
 
 				setTimeout(function () {

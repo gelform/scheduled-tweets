@@ -18,3 +18,5 @@ Timepicker: https://github.com/jonthornton/jquery-timepicker
 Datepicker: http://api.jqueryui.com/datepicker/
 
 SSL certificate problem: unable to get local issuer certificate: https://stackoverflow.com/a/48369178/38241
+
+Copy post: https://rudrastyh.com/wordpress/duplicate-post.html
