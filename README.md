@@ -1,15 +1,19 @@
 # Scheduled Tweets WordPress plugin
 
+![Scheduled Tweets banner](https://ps.w.org/scheduled-tweets/assets/banner-772x250.png)
+
 Schedule tweets from your WordPress website with Buffer-like functionality.
 
-## todo :
-- Copy and reschedule
+https://wordpress.org/plugins/scheduled-tweets/
+
+## todo:
 - Bulk upload (CSV?)
 - Add drag and drop to calendar
+- ✓ Copy and reschedule
 - ✓ Test empty message, other errors
 - ✓ Make preview live
  
-## Refrerences
+## References:
 
 Twitter URLS: https://developer.twitter.com/en/docs/tweets/post-and-engage/overview
 
