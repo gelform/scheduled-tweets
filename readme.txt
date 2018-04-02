@@ -60,6 +60,8 @@ To schedule a tweet in the future:
 * Added live preview
 * Using TinyMCE formatting now
 * Added settings test
+* Added datepicker and timepicker
+* Added option to copy and reschedule tweet
 
 = 0.0.1 =
 * Initial commit
