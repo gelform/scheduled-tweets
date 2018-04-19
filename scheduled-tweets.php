@@ -3,8 +3,8 @@
 /**
 Plugin Name:  Scheduled Tweets
 Description:  Schedule tweets to tweet to your Twitter account. Add tweets to a calendar. Plan a Twitter campaign. Host your own Buffer app.
-Version:      0.0.3
-Release Date: April 2, 2018
+Version:      0.0.4
+Release Date: April 19, 2018
 Plugin Name:  WordPress.org Plugin
 Plugin URI:   https://developer.wordpress.org/plugins/scheduled-tweets/
 Author:       Gelform
@@ -46,6 +46,7 @@ class Scheduled_Tweets {
 
 		// After tweet is saved.
 		add_filter( 'wp_insert_post_data', array( __CLASS__, 'set_title' ), '99', 2 );
+		add_action('save_post', array( __CLASS__, 'save_campaign'));
 
 		// Copy tweet.
 		add_action('admin_init', array( __CLASS__, 'copy_post' ) );
@@ -760,6 +761,8 @@ class Scheduled_Tweets {
 			return false;
 		}
 
+		remove_meta_box('tagsdiv-' . self::$post_type . '_campaigns',self::$post_type,'side');
+
 		add_meta_box(
 			'tweet_status',
 			'Tweet',
@@ -777,6 +780,73 @@ class Scheduled_Tweets {
 			'normal',
 			'low'
 		);
+
+		add_meta_box(
+			self::$post_type . '_campaigns',
+			'Campaign',
+			array( __CLASS__, 'render_meta_box_campaign' ),
+			self::$post_type,
+			'side',
+			'low'
+		);
+	}
+
+	static function render_meta_box_campaign ($post) {
+		$campaigns = get_terms(self::$post_type . '_campaigns', 'hide_empty=0');
+
+		$names = wp_get_object_terms($post->ID, self::$post_type . '_campaigns');
+pre
+		?>
+		<p>
+		<select name="<?php echo self::$post_type . '_campaigns' ?>"
+	        id="<?php echo self::$post_type . '_campaigns' ?>-select"
+		style="width: 100%;">
+			<option value=''
+				<?php if (!count($names)) echo "selected";?>>-- Choose a campaign --</option>
+			<?php foreach ($campaigns as $campaign) :  ?>
+				<option value="<?php echo $campaign->slug ?>"
+					<?php echo !is_wp_error($names) && !empty($names) && !strcmp($campaign->slug, $names[0]->slug) ? 'selected' : '' ?>>
+					<?php echo $campaign->name ?>
+				</option>
+			<?php endforeach ?>
+		</select>
+		</p>
+
+		<p>
+			<input type="text" id="<?php self::$post_type ?>-campaign-new">
+			<button type="button"
+			        id="<?php self::$post_type ?>-campaign-add"
+			class="button">
+				Add a new campaign
+			</button>
+		</p>
+
+		<script>
+			jQuery(function ($) {
+				$('#<?php self::$post_type ?>-campaign-add').on(
+					'click',
+					function () {
+						var $input = $('#<?php self::$post_type ?>-campaign-new');
+						var val = $input.val();
+
+						if ( '' == val ) {
+							return false;
+						}
+
+						var $select = $('#<?php echo self::$post_type . '_campaigns' ?>-select');
+
+						$('<option value="' + val + '">' + val + '</option>').prependTo($select);
+						$select.val($("option:first", $select).val());
+
+						$input.val('');
+
+						return false;
+					}
+				);
+			});
+		</script>
+		<?php
+
 	}
 
 	static function render_meta_box_preview() {
@@ -825,6 +895,23 @@ class Scheduled_Tweets {
 		return $data;
 	}
 
+	static function save_campaign ($post_id) {
+
+		// verify if this is an auto save routine. If it is our form has not been submitted, so we dont want to do anything
+		if ( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE ) {
+			return false;
+		}
+
+		if ( $_POST['post_type'] != self::$post_type || !current_user_can( 'edit_page', $post_id ) )
+		{
+			return false;
+		}
+
+		$campaign = sanitize_text_field($_POST[self::$post_type . '_campaigns']);
+
+		wp_set_object_terms( $post_id, $campaign, self::$post_type . '_campaigns' );
+	}
+
 	static function remove_tinymce( $settings, $editor_id ) {
 		if ( $editor_id === 'content' && get_current_screen()->post_type === self::$post_type ) {
 //			$settings['tinymce']       = false;
@@ -848,7 +935,7 @@ class Scheduled_Tweets {
 			'parent_item_colon'     => 'Parent Tweet:',
 			'all_items'             => 'All Tweets',
 			'add_new_item'          => 'Add New Tweet',
-			'add_new'               => 'Add One',
+			'add_new'               => 'Add a Tweet',
 			'new_item'              => 'New Tweet',
 			'edit_item'             => 'Edit Tweet',
 			'update_item'           => 'Update Tweet',
@@ -923,6 +1010,38 @@ class Scheduled_Tweets {
 		register_taxonomy( self::$post_type . '_tags', array( self::$post_type ), $args );
 
 
+		$labels = array(
+			'name'                       => _x( 'Campaign', 'Campaign General Name', 'text_domain' ),
+			'singular_name'              => _x( 'Campaign', 'Campaign Singular Name', 'text_domain' ),
+			'menu_name'                  => __( 'Campaigns', 'text_domain' ),
+			'all_items'                  => __( 'All Items', 'text_domain' ),
+			'parent_item'                => __( 'Parent Item', 'text_domain' ),
+			'parent_item_colon'          => __( 'Parent Item:', 'text_domain' ),
+			'new_item_name'              => __( 'New Item Name', 'text_domain' ),
+			'add_new_item'               => __( 'Add New Item', 'text_domain' ),
+			'edit_item'                  => __( 'Edit Item', 'text_domain' ),
+			'update_item'                => __( 'Update Item', 'text_domain' ),
+			'view_item'                  => __( 'View Item', 'text_domain' ),
+			'separate_items_with_commas' => __( 'Separate items with commas', 'text_domain' ),
+			'add_or_remove_items'        => __( 'Add or remove items', 'text_domain' ),
+			'choose_from_most_used'      => __( 'Choose from the most used', 'text_domain' ),
+			'popular_items'              => __( 'Popular Items', 'text_domain' ),
+			'search_items'               => __( 'Search Items', 'text_domain' ),
+			'not_found'                  => __( 'Not Found', 'text_domain' ),
+			'no_terms'                   => __( 'No items', 'text_domain' ),
+			'items_list'                 => __( 'Items list', 'text_domain' ),
+			'items_list_navigation'      => __( 'Items list navigation', 'text_domain' ),
+		);
+		$args = array(
+			'labels'                     => $labels,
+			'hierarchical'               => false,
+			'public'                     => true,
+			'show_ui'                    => true,
+			'show_admin_column'          => true,
+			'show_in_nav_menus'          => true,
+			'show_tagcloud'              => true,
+		);
+		register_taxonomy( self::$post_type . '_campaigns', array( self::$post_type ), $args );
 	}
 
 

@@ -1,10 +1,10 @@
 === Scheduled Tweets ===
 Contributors:      gelform
 Tags:              Twitter, tweet, Buffer, Social Pilot
-Version:      0.0.3
-Release Date: April 2, 2018
+Version:      0.0.4
+Release Date: April 19, 2018
 Requires at least: 4.0
-Tested up to:      4.9.4
+Tested up to:      4.9.5
 Requires PHP:      5.3
 Stable tag:        trunk
 License:           GPLv2 or later
@@ -52,6 +52,9 @@ To schedule a tweet in the future:
 3. Edit a single tweet with hashtags and an image.
 
 == Changelog ==
+
+= 0.0.4 =
+* Added campaign taxonomy for easier filtering.
 
 = 0.0.3 =
 * Fixed date format bug in javascript.
