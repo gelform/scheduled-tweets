@@ -53,6 +53,10 @@ To schedule a tweet in the future:
 
 == Changelog ==
 
+= 0.0.5 =
+* Added a campaign filter to the list page.
+* Cleaned up campaign metabox.
+
 = 0.0.4 =
 * Added campaign taxonomy for easier filtering.
 
