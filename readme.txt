@@ -1,7 +1,7 @@
 === Scheduled Tweets ===
 Contributors:      gelform
 Tags:              Twitter, tweet, Buffer, Social Pilot
-Version:      0.0.4
+Version:      0.0.5
 Release Date: April 19, 2018
 Requires at least: 4.0
 Tested up to:      4.9.5

@@ -3,7 +3,7 @@
 /**
 Plugin Name:  Scheduled Tweets
 Description:  Schedule tweets to tweet to your Twitter account. Add tweets to a calendar. Plan a Twitter campaign. Host your own Buffer app.
-Version:      0.0.4
+Version:      0.0.5
 Release Date: April 19, 2018
 Plugin Name:  WordPress.org Plugin
 Plugin URI:   https://developer.wordpress.org/plugins/scheduled-tweets/
@@ -37,6 +37,7 @@ class Scheduled_Tweets {
 		add_filter( 'manage_' . self::$post_type . '_posts_columns', array( __CLASS__, 'manage_posts_columns' ) );
 		add_filter( 'manage_' . self::$post_type . '_posts_custom_column', array(__CLASS__, 'manage_posts_custom_column' ), 10, 2 );
 		add_action( 'admin_footer', array( __CLASS__, 'admin_footer_list' ) );
+		add_action( 'restrict_manage_posts', array( __CLASS__, 'add_taxonomy_filters') );
 
 		// Tweet edit screen.
 		add_filter( 'wp_editor_settings', array( __CLASS__, 'remove_tinymce' ), 10, 2 );
@@ -557,6 +558,34 @@ class Scheduled_Tweets {
 
 	}
 
+	static function add_taxonomy_filters() {
+		global $typenow;
+
+		// an array of all the taxonomyies you want to display. Use the taxonomy name or slug
+		$taxonomies = array(self::$post_type . '_campaigns');
+
+		// must set this to the post type you want the filter(s) displayed on
+		if( $typenow == self::$post_type ){
+
+			foreach ($taxonomies as $tax_slug) {
+
+				$tax_obj = get_taxonomy($tax_slug);
+				$tax_name = $tax_obj->labels->name;
+				$terms = get_terms($tax_slug, array(
+					'hide_empty' => false,
+				));
+				if(count($terms) > 0) {
+					echo "<select name='$tax_slug' id='$tax_slug' class='postform'>";
+					echo "<option value=''>Show All $tax_name</option>";
+					foreach ($terms as $term) {
+						echo '<option value='. $term->slug, $_GET[$tax_slug] == $term->slug ? ' selected="selected"' : '','>' . $term->name .'</option>';
+					}
+					echo "</select>";
+				}
+			}
+		}
+	}
+
 	static function admin_footer_list () {
 
 		$screen = get_current_screen();
@@ -795,57 +824,8 @@ class Scheduled_Tweets {
 		$campaigns = get_terms(self::$post_type . '_campaigns', 'hide_empty=0');
 
 		$names = wp_get_object_terms($post->ID, self::$post_type . '_campaigns');
-pre
-		?>
-		<p>
-		<select name="<?php echo self::$post_type . '_campaigns' ?>"
-	        id="<?php echo self::$post_type . '_campaigns' ?>-select"
-		style="width: 100%;">
-			<option value=''
-				<?php if (!count($names)) echo "selected";?>>-- Choose a campaign --</option>
-			<?php foreach ($campaigns as $campaign) :  ?>
-				<option value="<?php echo $campaign->slug ?>"
-					<?php echo !is_wp_error($names) && !empty($names) && !strcmp($campaign->slug, $names[0]->slug) ? 'selected' : '' ?>>
-					<?php echo $campaign->name ?>
-				</option>
-			<?php endforeach ?>
-		</select>
-		</p>
 
-		<p>
-			<input type="text" id="<?php self::$post_type ?>-campaign-new">
-			<button type="button"
-			        id="<?php self::$post_type ?>-campaign-add"
-			class="button">
-				Add a new campaign
-			</button>
-		</p>
-
-		<script>
-			jQuery(function ($) {
-				$('#<?php self::$post_type ?>-campaign-add').on(
-					'click',
-					function () {
-						var $input = $('#<?php self::$post_type ?>-campaign-new');
-						var val = $input.val();
-
-						if ( '' == val ) {
-							return false;
-						}
-
-						var $select = $('#<?php echo self::$post_type . '_campaigns' ?>-select');
-
-						$('<option value="' + val + '">' + val + '</option>').prependTo($select);
-						$select.val($("option:first", $select).val());
-
-						$input.val('');
-
-						return false;
-					}
-				);
-			});
-		</script>
-		<?php
+		include plugin_dir_path( __FILE__ ) . '/templates/admin/meta_box-campaign.php';
 
 	}
 
@@ -1039,7 +1019,7 @@ pre
 			'show_ui'                    => true,
 			'show_admin_column'          => true,
 			'show_in_nav_menus'          => true,
-			'show_tagcloud'              => true,
+			'show_tagcloud'              => false,
 		);
 		register_taxonomy( self::$post_type . '_campaigns', array( self::$post_type ), $args );
 	}
