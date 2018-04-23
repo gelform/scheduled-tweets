@@ -16,6 +16,8 @@ https://wordpress.org/plugins/scheduled-tweets/
 ## todo:
 - Bulk upload (CSV?)
 - Add drag and drop to calendar
+- Copying a tweet should reapply any filters, like campaign
+- Clicking "all tweets" from a single tweet should default to campaign list, if the tweet has a campaign
 - ✓ Copy and reschedule
 - ✓ Test empty message, other errors
 - ✓ Make preview live
